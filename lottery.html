@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html style="font-size: 54.8px;">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>签到</title>
+    <script type="text/javascript" src="/js/jquery-1.10.1.js"></script>
+    <style>
+        /*抽奖大转盘开始*/
+        .ck-wheel{
+            width:100%;
+            height:6.64rem;
+            background:url(../../images/v3/balloon@2x.png) no-repeat left top;
+            background-size:7.5rem 5.68rem;
+            margin: .3rem 0;
+        }
+        .wheel{
+            display:block;
+            width:6.64rem;
+            height:6.64rem;
+            position:relative;
+            background-image:url(../../images/v3/wheel-bg.png);
+            background-size:100% 100%;
+            margin: 0 auto;
+        }
+        img.pointer{
+            position:absolute;
+            width: 3rem;
+            height: 3.3rem;
+            left: 1.82rem;
+            top: 1.67rem;
+        }
+        #wheelCanvas{
+            width:6.64rem;
+            height:6.64rem;
+        }
+        /*抽奖大转盘结束*/
+    </style>
+</head>
+<body>
+<#--抽奖专区-->
+    <div class="ck-wheel">
+        <div class="wheel">
+            <canvas class="item" id="wheelCanvas" width="844px" height="844px"></canvas>
+            <img class="pointer" src="../../images/v3/wheel-pointer.png" />
+        </div>
+    </div>
+    <script type="text/javascript" src="./jQueryRotate.js"></script>
+
+    <script>
+
+        //抽奖转盘
+        var turnWheel = {
+            rewardNames: [], //转盘奖品名称数组
+            rewardUrl: [], //转盘奖品图片
+            prizeId:[],
+            colors: [], //转盘奖品区块对应背景颜色
+            outsideRadius: 340, //转盘外圆的半径
+            textRadius: 320, //转盘奖品位置距离圆心的距离
+            insideRadius: 68, //转盘内圆的半径
+            startAngle: 0, //开始角度
+            bRotate: false //false:停止;ture:旋转
+        };
+        turnWheel.rewardNames = ["380元白酒抵用券", "谢谢参与", "30积分", "谢谢参与", "10积分", "谢谢参与"];
+        //6个图片地址,需要自己写一下
+        turnWheel.rewardUrl = [];
+        turnWheel.prizeId =   ["6", "1", "2", "3", "4", "5"];
+        turnWheel.colors = [
+            "#AE3EFF",
+            "#4D3FFF",
+            "#FC262C",
+            "#3A8BFF",
+            "#EE7602",
+            "#FE339F"
+        ];
+        // 图片信息
+        var imgUrl1 = new Image();
+        imgUrl1.src = turnWheel.rewardUrl[0];
+        var imgUrl2 = new Image();
+        imgUrl2.src = turnWheel.rewardUrl[1];
+        var imgUrl3 = new Image();
+        imgUrl3.src = turnWheel.rewardUrl[2];
+        var imgUrl4 = new Image();
+        imgUrl4.src = turnWheel.rewardUrl[3];
+        var imgUrl5 = new Image();
+        imgUrl5.src = turnWheel.rewardUrl[4];
+        var imgUrl6 = new Image();
+        imgUrl6.src = turnWheel.rewardUrl[5];
+        window.onload = function() {
+            drawWheelCanvas();
+        };
+
+        //旋转转盘 item:奖品序号，从0开始的; txt：提示语 ,count 奖品的总数量;
+        var rotateFunc = function (item, tip,count){
+
+            // 应该旋转的角度，旋转插件角度参数是角度制。
+            var baseAngle = 360 / count;
+            // 旋转角度 == 270°（当前第一个角度和指针位置的偏移量） - 奖品的位置 * 每块所占的角度 - 每块所占的角度的一半(指针指向区域的中间)
+            angles = 360 * 3 / 4 - ( item * baseAngle) - baseAngle / 2; // 因为第一个奖品是从0°开始的，即水平向右方向
+            $('#wheelCanvas').stopRotate();
+            // 注意，jqueryrotate 插件传递的角度不是弧度制。
+            // 哪个标签调用方法，旋转哪个控件
+            $('#wheelCanvas').rotate({
+                angle:0,
+                animateTo:angles + 360 * 5, // 这里多旋转了5圈，圈数越多，转的越快
+                duration:8000,
+                callback:function (){ // 回调方法
+                    alert(tip);
+                    turnWheel.bRotate = !turnWheel.bRotate;
+
+                }
+            });
+        };
+        // 抽取按钮按钮点击触发事件
+        $('.pointer').click(function (){
+            // 正在转动，直接返回
+            if(turnWheel.bRotate) return;
+
+            turnWheel.bRotate = !turnWheel.bRotate;
+            var count = turnWheel.rewardNames.length;
+
+            // 这里应该是从服务器获取用户真实的获奖信息（对应的获奖序号）
+            $.ajax({
+                type: "POST",
+                url: "./aaaaaa.htm",
+                data: {customerId:2589},
+                async:false,
+                dataType:"json", // 返回数据类型
+                success: function(data){
+                    console.log(data);
+                    if(data.type == 1){//积分不足
+
+                    }else if(data.type == 2){//抽奖次数已经用完
+
+                    }else{//抽奖
+                        turnWheel.prizeId.forEach(function(currentValue, index){
+                            if(currentValue == data.prize.id){
+                                var item = index;
+                                console.log(index);
+                                $(".award-warp .content").html(data.prize.name);
+                                // 开始抽奖
+                                rotateFunc(item, turnWheel.rewardNames[item],count);
+                            }
+                        })
+                    }
+                },
+                error: function(data){
+                    console.log("网络错误，请检查您的网络设置！");
+                }
+            });
+
+        });
+
+        function drawWheelCanvas() {
+            var canvas = document.getElementById("wheelCanvas");
+            var baseAngle = Math.PI * 2 / (turnWheel.rewardNames.length);
+            var ctx = canvas.getContext("2d");
+            var canvasW = canvas.width; // 画板的高度
+            var canvasH = canvas.height; // 画板的宽度
+            console.log(canvasW);
+            ctx.fillStyle = "#fff000";
+            ctx.clearRect(0,0,canvasW,canvasH);//去掉背景默认的黑色
+            console.log(canvasW);
+            ctx.strokeStyle = "#199301"; //线的颜色
+            ctx.font = '26px Microsoft YaHei';
+            //ctx.closePath();
+            //使用了beginPath(),canvas会知道是重新画一条，如果给这几条设置不同的属性也是可以的。
+            for(var index = 0; index < turnWheel.rewardNames.length; index++) {
+                var angle = turnWheel.startAngle + index * baseAngle;
+                ctx.fillStyle = turnWheel.colors[index];
+                ctx.beginPath();
+                ctx.arc(canvasW * 0.5, canvasH * 0.5, turnWheel.outsideRadius, angle, angle + baseAngle, false);
+                ctx.arc(canvasW * 0.5, canvasH * 0.5, turnWheel.insideRadius, angle + baseAngle, angle, true);
+                ctx.stroke();
+                ctx.fill();
+                ctx.save();
+                ctx.fillStyle = "#FFFF00";
+                var rewardName = turnWheel.rewardNames[index];
+
+                var line_height = 24;
+                var translateX = canvasW * 0.5 + Math.cos(angle + baseAngle / 2) * turnWheel.textRadius;
+                var translateY = canvasH * 0.5 + Math.sin(angle + baseAngle / 2) * turnWheel.textRadius;
+                ctx.translate(translateX, translateY);
+                ctx.rotate(angle + baseAngle / 2 + Math.PI / 2);
+                //ctx.drawImage(imgUrl1, -15, 10);
+                ctx.fillText(rewardName, -ctx.measureText(rewardName).width / 2, 100);
+                //添加对应图标
+                if(index == 0){
+                    ctx.drawImage(imgUrl1,-35,0,60,60);
+                }else if(index == 1){
+                    ctx.drawImage(imgUrl2,-35,0,60,60);
+                }else if(index == 2){
+                    ctx.drawImage(imgUrl3,-35,0,60,60);
+                }else if(index == 3){
+                    ctx.drawImage(imgUrl4,-35,0,60,60);
+                }else if(index == 4){
+                    ctx.drawImage(imgUrl5,-35,0,60,60);
+                }else{
+                    ctx.drawImage(imgUrl6,-35,0,60,60);
+                }
+                ctx.restore(); //很关键
+            }
+        }
+
+    </script>
+</body>
+</html>
